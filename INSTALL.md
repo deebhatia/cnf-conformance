@@ -5,11 +5,18 @@ This guide shows how to install the CNF Conformance Test Suite
 
 
 ## Installation
-  * Install [crystal-lang](https://crystal-lang.org/install/) version 0.30.1
+
+### Pre-reqs
+  * Install Go, git, and [crystal-lang](https://crystal-lang.org/install/) version 0.30.1
+  * Install docker and setup Kind  
+  
+### Project dependencies
+
   * Install the project's crystal dependencies
   ```
   shards install
   ```
+  
   * #### First clone this cnf-conformance repository 
   ```
   cd cnf-conformance
