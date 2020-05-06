@@ -49,14 +49,16 @@ task "reasonable_startup_time" do |_, args|
     end
 
     puts helm_install if check_verbose(args)
+    emoji_passed_reasonable_startup_time="🚀⏲️"
+    emoji_failed_reasonable_startup_time="🐢⏲️"
 
     # if is_helm_installed
     if elapsed_time.seconds < 30
       upsert_passed_task("reasonable_startup_time")
-      puts "PASSED: CNF had a reasonable startup time 🚀".colorize(:green)
+      puts "✔️  PASSED: CNF had a reasonable startup time #{emoji_passed_reasonable_startup_time}".colorize(:green)
     else
       upsert_failed_task("reasonable_startup_time")
-      puts "FAILURE: CNF had a startup time of #{elapsed_time.seconds} seconds 🐢".colorize(:red)
+      puts "✖️  FAILURE: CNF had a startup time of #{elapsed_time.seconds} seconds #{emoji_failed_reasonable_startup_time}".colorize(:red)
     end
 
   end
