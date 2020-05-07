@@ -28,32 +28,18 @@ describe CnfConformance do
     `crystal src/cnf-conformance.cr sample_coredns_source_cleanup`
   end
 
-  it "'helm_deploy' should fail on a bad helm chart", tags: "helm" do
-    `crystal src/cnf-conformance.cr setup`
+  it "'helm_deploy' should fail if install script does not have helm" do
+    # puts `pwd` 
+    # puts `echo $KUBECONFIG`
+    # `crystal src/cnf-conformance.cr cleanup`
+    # $?.success?.should be_true
+    `crystal src/cnf-conformance.cr sample_coredns_source_setup`
     $?.success?.should be_true
-    response_s = `crystal src/cnf-conformance.cr helm_deploy yml-file=sample-cnfs/sample-bad-helm-deploy-repo/cnf-conformance.yml verbose`
+    response_s = `crystal src/cnf-conformance.cr install_script_helm`
+    #puts response_s
     $?.success?.should be_true
-    (/FAILURE: Helm deploy failed/ =~ response_s).should_not be_nil
-    `crystal src/cnf-conformance.cr cleanup`
-  end
-
-  it "'helm_deploy' should fail if command is not supplied yml-file argument", tags: "helm" do
-    `crystal src/cnf-conformance.cr setup`
-    $?.success?.should be_true
-    response_s = `crystal src/cnf-conformance.cr helm_deploy`
-    $?.success?.should be_true
-    (/No cnf_conformance.yml found! Did you run the setup task/ =~ response_s).should_not be_nil
-    `crystal src/cnf-conformance.cr cleanup`
-  end
-
-  it "'helm_deploy' should pass if command is supplied yml-file argument", tags: "helm" do
-    `crystal src/cnf-conformance.cr setup`
-    $?.success?.should be_true
-    response_s = `crystal src/cnf-conformance.cr helm_deploy yml-file=sample-cnfs/sample-generic-cnf/cnf-conformance.yml verbose`
-    puts response_s
-    $?.success?.should be_true
-    (/PASSED: Helm deploy successful/ =~ response_s).should_not be_nil
-    `crystal src/cnf-conformance.cr cleanup`
+    (/FAILURE: Helm not found in supplied install script/ =~ response_s).should_not be_nil
+    `crystal src/cnf-conformance.cr sample_coredns_source_cleanup`
   end
 
   it "'helm_chart_valid' should pass on a good helm chart" do
@@ -92,21 +78,30 @@ describe CnfConformance do
     response_s = `crystal src/cnf-conformance.cr helm_chart_published`
     puts response_s
     $?.success?.should be_true
-    (/Helm Chart Repo added/ =~ response_s).should_not be_nil
+    (/PASSED: Published Helm Chart Found/ =~ response_s).should_not be_nil
+    `crystal src/cnf-conformance.cr cnf_cleanup cnf-path=sample-cnfs/sample-coredns-cnf`
+    $?.success?.should be_true
   end
 
   it "'helm_chart_published' should fail on a bad helm chart repo", tags: "helm_chart_published" do
-    `crystal src/cnf-conformance.cr cnf_cleanup cnf-path=sample-cnfs/sample-coredns-cnf`
-    $?.success?.should be_true
     `crystal src/cnf-conformance.cr cnf_setup cnf-path=sample-cnfs/sample-bad-helm-repo`
     $?.success?.should be_true
     response_s = `crystal src/cnf-conformance.cr helm_chart_published`
     puts response_s
     $?.success?.should be_true
-    (/Helm Chart Repo failed to add/ =~ response_s).should_not be_nil
+    (/FAILURE: Published Helm Chart Not Found/ =~ response_s).should_not be_nil
     `crystal src/cnf-conformance.cr cnf_cleanup cnf-path=sample-cnfs/sample-bad-helm-repo`
     $?.success?.should be_true
-    `crystal src/cnf-conformance.cr cnf_setup cnf-path=sample-cnfs/sample-coredns-cnf`
-    $?.success?.should be_true
   end
+
+  # it "'helm_chart_published' should fail on a bad helm chart", tags: "helm_chart_published" do
+  #   `crystal src/cnf-conformance.cr cnf_setup cnf-path=sample-cnfs/sample-coredns-cnf-bad-chart`
+  #   $?.success?.should be_true
+  #   response_s = `crystal src/cnf-conformance.cr helm_chart_published`
+  #   puts response_s
+  #   $?.success?.should be_true
+  #   (/FAILURE: Published Helm Chart Not Found/ =~ response_s).should_not be_nil
+  #   `crystal src/cnf-conformance.cr cnf_cleanup cnf-path=sample-cnfs/sample-coredns-cnf-bad-chart`
+  #   $?.success?.should be_true
+  # end
 end

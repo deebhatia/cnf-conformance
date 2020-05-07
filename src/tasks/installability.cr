@@ -30,10 +30,10 @@ task "helm_deploy" do |_, args|
 
     if is_helm_installed
       upsert_passed_task("helm_deploy")
-      puts "PASSED: Helm deploy successful".colorize(:green)
+      puts "PASSED: Helm was deployed successfully".colorize(:green)
     else
       upsert_failed_task("helm_deploy")
-      puts "FAILURE: Helm deploy failed".colorize(:red)
+      puts "FAILURE: Helm did not deploy properly".colorize(:red)
     end
   rescue ex
     puts ex.message
@@ -90,20 +90,47 @@ task "helm_chart_published", ["helm_local_install"] do |_, args|
     puts "helm_chart_published args.raw: #{args.raw}" if check_verbose(args)
     puts "helm_chart_published args.named: #{args.named}" if check_verbose(args)
 
-    emoji_helm_chart_published="📊🖛 🌐"
+    config = cnf_conformance_yml
+    helm_chart = "#{config.get("helm_chart").as_s?}"
+    helm_directory = "#{config.get("helm_directory").as_s?}"
 
+    current_dir = FileUtils.pwd 
+    helm = "#{current_dir}/#{TOOLS_DIR}/helm/linux-amd64/helm"
+    puts helm if check_verbose(args)
 
-    if helm_repo_add(args)
-      upsert_passed_task("helm_chart_published")
-      puts "✔️ PASSED: Published Helm Chart Repo #{emoji_helm_chart_published}".colorize(:green)
-    else
-      upsert_failed_task("helm_chart_published")
-      puts "✖️ FAILURE: Published Helm Chart Repo #{emoji_helm_chart_published}".colorize(:red)
-    end
+# <<<<<<< HEAD
+#     if helm_repo_add(args)
+#       upsert_passed_task("helm_chart_published")
+#       puts "✔️ PASSED: Published Helm Chart Repo #{emoji_helm_chart_published}".colorize(:green)
+#     else
+#       upsert_failed_task("helm_chart_published")
+#       puts "✖️ FAILURE: Published Helm Chart Repo #{emoji_helm_chart_published}".colorize(:red)
+#     end
+# =======
+   if helm_repo_add 
+     unless helm_chart.empty?
+       helm_search = `#{helm} search repo #{helm_chart}`
+       puts "#{helm_search}" if check_verbose(args)
+       unless helm_search =~ /No results found/
+         upsert_passed_task("helm_chart_published")
+         puts "PASSED: Published Helm Chart Found".colorize(:green)
+       else
+         upsert_failed_task("helm_chart_published")
+         puts "FAILURE: Published Helm Chart Not Found".colorize(:red)
+       end
+     else
+       upsert_failed_task("helm_chart_published")
+       puts "FAILURE: Published Helm Chart Not Found".colorize(:red)
+     end
+   else
+     upsert_failed_task("helm_chart_published")
+     puts "FAILURE: Published Helm Chart Not Found".colorize(:red)
+   end
+# >>>>>>> 6cb03df377d95beee2724830cd3bb0dc549908a5
   rescue ex
     puts ex.message
     ex.backtrace.each do |x|
-      puts x
+ puts x
     end
   end
 end
