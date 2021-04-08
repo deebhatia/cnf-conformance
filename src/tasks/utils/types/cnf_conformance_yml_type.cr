@@ -20,7 +20,7 @@ class CnfConformanceYmlType
     {{ @type.methods.map &.name.stringify }}
   end
 
-  property helm_directory : String
+  property helm_directory : String?
 
   property git_clone_url : String?
 
@@ -28,15 +28,15 @@ class CnfConformanceYmlType
 
   property service_name : String?
 
-  property release_name : String
+  property release_name : String?
 
   property docker_repository : String?
 
-  property deployment_name : String
+  property deployment_name : String?
 
-  property deployment_label : String
+  property deployment_label : String?
 
-  property application_deployment_names : Array(String)
+  property application_deployment_names : Array(String)?
 
   property helm_repository : HelmRepositoryType?
 
@@ -44,16 +44,22 @@ class CnfConformanceYmlType
 
   property helm_chart_container_name : String?
 
-  property rolling_update_tag : String?
+  property rolling_update_test_tag : String?
+  property rolling_downgrade_test_tag : String?
+  property rolling_version_change_test_tag : String?
 
-  property white_list_helm_chart_container_names : Array(String)
+  property rollback_from_tag : String?
+
+  property allowlist_helm_chart_container_names : Array(String)?
+
+  property container_names : Array(Hash(String,String))
 end
 
 class HelmRepositoryType
   include JSON::Serializable
   include JSON::Serializable::Unmapped
 
-  property name : String
+  property name : String?
 
-  property repo_url : String
+  property repo_url : String?
 end

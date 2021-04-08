@@ -1,5 +1,5 @@
 # Conformance Test Categories
-The CNF Conformance program validates interoperability of CNF **workloads** supplied by multiple different vendors orchestrated by Kubernetes **platforms** that are supplied by multiple different vendors. The goal is to provide an open source test suite to enable both open and closed source CNFs to demonstrate conformance and implementation of best practices.  For more detailed CLI documentation see the [usage document.](https://github.com/cncf/cnf-conformance/blob/master/USAGE.md)
+The CNF Conformance program validates interoperability of CNF **workloads** supplied by multiple different vendors orchestrated by Kubernetes **platforms** that are supplied by multiple different vendors. The goal is to provide an open source test suite to enable both open and closed source CNFs to demonstrate conformance and implementation of best practices.  For more detailed CLI documentation see the [usage document.](https://github.com/cncf/cnf-conformance/blob/main/USAGE.md)
 
 ## Compatability Tests 
 #### CNFs should work with any Certified Kubernetes product and any CNI-compatible network that meet their functionality requirements.  The CNF Conformance Suite validates this:
@@ -40,7 +40,7 @@ The CNF Conformance program validates interoperability of CNF **workloads** supp
 *  Test large scale autoscaling with load test tools like [CNF Testbed](https://github.com/cncf/cnf-testbed)
 *  Test if the CNF control layer responds to retries for failed communication (e.g. using [Pumba](https://github.com/alexei-led/pumba) or [Blockade](https://github.com/worstcase/blockade) for network chaos and [Envoy](https://github.com/envoyproxy/envoy) for retries)
 
-(see [scalability test usage documentation](https://github.com/cncf/cnf-conformance/blob/master/USAGE.md#scaling-tests))
+(see [scalability test usage documentation](https://github.com/cncf/cnf-conformance/blob/main/USAGE.md#scaling-tests))
 
 ## Configuration and Lifecycle Tests 
 #### Configuration and lifecycle should be managed in a declarative manner, using [ConfigMaps](https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/), [Operators](https://kubernetes.io/docs/concepts/extend-kubernetes/operator/), or other [declarative interfaces](https://kubernetes.io/docs/concepts/overview/working-with-objects/kubernetes-objects/#understanding-kubernetes-objects).  The Conformance suite checks this by:
@@ -52,7 +52,8 @@ The CNF Conformance program validates interoperability of CNF **workloads** supp
 *  Checking if the pod/container can be started without mounting a volume (e.g. using [helm configuration](https://kubernetes.io/docs/tasks/configure-pod-container/configure-volume-storage/)) that has configuration files
 *  Testing to see if we can start pods/containers and see that the application continues to perform (e.g. using [Litmus](https://github.com/litmuschaos/litmus))
 *  Testing by reseting any child processes, and when the parent process is started, checking to see if those child processes are reaped (ie. monitoring processes with [Falco](https://github.com/falcosecurity/falco) or [sysdig-inspect](https://github.com/draios/sysdig-inspect))
-*  Testing if the CNF can perform a rolling update (i.e. [kubectl rolling update](https://kubernetes.io/docs/tasks/run-application/rolling-update-replication-controller/))
+*  Testing if the CNF can perform a rolling update (also rolling downgrade) (i.e. [kubectl rolling update](https://kubernetes.io/docs/tasks/run-application/rolling-update-replication-controller/))
+*  Testing if the CNF can perform a rollback (i.e. [kubectl_rollout_undo](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#rolling-back-to-a-previous-revision))
 *  Testing if there are any (non-declarative) hardcoded IP addresses or subnet masks 
 
 ## Observability Tests 

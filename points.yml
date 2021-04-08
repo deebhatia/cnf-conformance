@@ -3,6 +3,7 @@
   tags: 
   pass: 5
   fail: -1 
+  skipped: 0 
 
 - name: reasonable_image_size
   tags: microservice, dynamic, workload
@@ -45,6 +46,10 @@
 #  tags: scalability, dynamic, workload
 - name: network_chaos 
   tags: scalability, dynamic, workload
+- name: pod_network_latency
+  tags: scalability, dynamic, workload
+- name: disk_fill
+  tags: scalability, dynamic, workload  
 #- name: external_retry 
 #  tags: scalability, dynamic, workload
 
@@ -62,10 +67,24 @@
 #  tags: configuration_lifecycle, dynamic
 - name: rolling_update
   tags: configuration_lifecycle, dynamic, workload
+- name: rolling_downgrade
+  tags: configuration_lifecycle, dynamic, workload
+- name: rolling_version_change
+  tags: configuration_lifecycle, dynamic, workload
+- name: rollback
+  tags: configuration_lifecycle, dynamic, workload
 - name: nodeport_not_used
   tags: configuration_lifecycle, dynamic, workload
 - name: hardcoded_ip_addresses_in_k8s_runtime_configuration
   tags: configuration_lifecycle, dynamic, workload
+- name: secrets_used
+  tags: configuration_lifecycle, dynamic, workload
+  pass: 5
+  fail: 0 
+- name: immutable_configmap
+  tags: configuration_lifecycle, dynamic, workload
+  pass: 1
+  fail: 0 
 
 #- name: fluentd_traffic
 #  tags: observability, dynamic, workload
@@ -96,7 +115,9 @@
 
 - name: volume_hostpath_not_found
   tags: statelessness, dynamic, workload
-#- name: hardware_affinity
+- name: no_local_volume_configuration 
+  tags: statelessness, dynamic, workload
+#- name: hardware_and_scheduling
 #  tags: hardware, dynamic, workload
 #- name: static_accessing_hardware 
 #  tags: hardware, static, workload

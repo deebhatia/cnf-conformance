@@ -1,6 +1,8 @@
-### EXAMPLE-CNFs (DRAFT)
+### EXAMPLE-CNFs
 
-This is a preliminary list of CNF samples for each layer in the [OSI model](https://www.osi-model.com/presentation-layer/) which we plan to test in the CNF Conformance Test Suite
+This is a preliminary list of CNF samples for each layer in the [OSI model](https://www.osi-model.com/presentation-layer/) which we plan to test in the CNF Conformance Test Suite.  CNFs can be thought of as functionality occupying one or more of the following network layers:
+
+<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/8d/OSI_Model_v1.svg/440px-OSI_Model_v1.svg.png" width="25%" height="25%"><img src="https://cnf-test-suite.s3-us-west-2.amazonaws.com/inet-protocol.png" width="25%" height="25%">
 
 **Goals:**
 
@@ -11,7 +13,7 @@ This is a preliminary list of CNF samples for each layer in the [OSI model](http
 
 
 ## [Layer 7 - Application](https://en.wikipedia.org/wiki/Application_layer)
-- [CoreDNS Sample CNF](https://github.com/cncf/cnf-conformance/tree/master/sample-cnfs/sample-coredns-cnf)
+- [CoreDNS Sample CNF](https://github.com/cncf/cnf-conformance/tree/main/sample-cnfs/sample-coredns-cnf)
 - [NFF Go Deep Packet Inspection example](https://github.com/intel-go/nff-go/tree/master/examples/dpi) example
 
 
@@ -35,6 +37,7 @@ This is a preliminary list of CNF samples for each layer in the [OSI model](http
 
 ## [Layer 3 - Network](https://en.wikipedia.org/wiki/Network_layer)
 
+- [Pantheon Network Service Mesh NAT](https://github.com/cncf/cnf-conformance/blob/main/example-cnfs/pantheon-nsm-nat/README.md)
 - [NFF Go IP Forwarding example](https://github.com/intel-go/nff-go/tree/master/examples/forwarding)
 - [NFF Go IPsec example](https://github.com/intel-go/nff-go/tree/master/examples/ipsec)
 - [CNF Testbed IPsec example](https://github.com/cncf/cnf-testbed/tree/master/examples/use_case/ipsec)
@@ -45,6 +48,7 @@ This is a preliminary list of CNF samples for each layer in the [OSI model](http
 - [Tungsten Fabric](https://tungsten.io/)
 - [OpenSwitch NAS Layer 3](https://github.com/open-switch/opx-nas-l3)
 - CNI K8s add-ons operating on Layer 3 such as the Calico kube-policy-controller container
+- [A dockerized version of free5gc](https://github.com/free5gc/free5gc-compose/)
 
 
 ## [Layer 2 - Data](https://en.wikipedia.org/wiki/Data_link_layer)

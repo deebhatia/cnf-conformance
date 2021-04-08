@@ -1,5 +1,6 @@
 require "totem"
 require "colorize"
+require "string_scanner"
 require "./cnf_manager.cr"
 require "halite"
 
@@ -25,10 +26,10 @@ module ReleaseManager
       # cnf_bin_asset_name = "#{cnf_bin_path}"
       cnf_bin_asset_name = "cnf-conformance"
 
-      if ReleaseManager.remote_master_branch_hash == ReleaseManager.current_hash
-        upsert_version = upsert_version.sub("HEAD", "master")
+      if ReleaseManager.remote_main_branch_hash == ReleaseManager.current_hash
+        upsert_version = upsert_version.sub("HEAD", "main")
       end
-      if upsert_version =~ /(?i)(master)/
+      if upsert_version =~ /(?i)(main)/
         prerelease = true 
         draft = false
       else
@@ -36,8 +37,16 @@ module ReleaseManager
         draft = true 
       end
       LOGGING.info "upsert_version: #{upsert_version}"
-      LOGGING.info "upsert_version comparison: upsert_version =~ /(?i)(master|v[0-1]|test_version)/ : #{upsert_version =~ /(?i)(master|v[0-1]|test_version)/}"
-      unless upsert_version =~ /(?i)(master|v[0-1]|test_version)/
+      LOGGING.info "upsert_version comparison: upsert_version =~ /(?i)(main|v[0-9]|test_version)/ : #{upsert_version =~ /(?i)(main|v[0-9]|test_version)/}"
+      #master-381d20d
+      invalid_version = !(upsert_version =~ /(?i)(main|v[0-9]|test_version)/)
+      snap_shot_version = (upsert_version =~ /(?i)(main-)/)
+      head = (ReleaseManager.current_branch == "HEAD")
+      skip_snapshot_detached_head = (head && snap_shot_version)
+      LOGGING.info "invalid_version: #{invalid_version}"
+      LOGGING.info "current_branch: #{ReleaseManager.current_branch}"
+      LOGGING.info "skip_snapshot_detached_head: #{skip_snapshot_detached_head}"
+      if skip_snapshot_detached_head || invalid_version
         LOGGING.info "Not creating a release for : #{upsert_version}"
         return {found_release, asset} 
       end
@@ -52,6 +61,7 @@ module ReleaseManager
         # build_resp = `crystal build src/cnf-conformance.cr --release --static --link-flags "-lxml2 -llzma"`
         # LOGGING.info "build_resp: #{build_resp}"
         # the name of the binary asset must be unique across all releases in github for project
+        # TODO if upsert version == test then make unique
         cnf_tarball_name = "cnf-conformance-#{upsert_version}.tar.gz"
         cnf_tarball = `tar -czvf #{cnf_tarball_name} ./#{cnf_bin_asset_name}`
         LOGGING.info "cnf_tarball: #{cnf_tarball}"
@@ -68,9 +78,16 @@ module ReleaseManager
       found_release = release_resp.find {|x| x["tag_name"] == upsert_version} 
       LOGGING.info "find found_release?: #{found_release}"
 
-      issues = ReleaseManager.commit_message_issues(ReleaseManager.latest_release, "HEAD")
+      if upsert_version =~ /(?i)(main)/
+        latest_build = ReleaseManager.latest_snapshot
+      else
+        latest_build = ReleaseManager.latest_release
+      end
+      LOGGING.info "latest_build: #{latest_build}"
+      issues = ReleaseManager.commit_message_issues(latest_build, "HEAD")
+      LOGGING.info "issues: #{issues}"
       titles = issues.reduce("") do |acc, x| 
-        acc + "issue: #{x} Title: #{ReleaseManager.issue_title(x)}\n"
+        acc + "- #{x} - #{ReleaseManager.issue_title(x)}\n"
       end
       # LOGGING.info "titles: #{titles}"
 notes_template = <<-TEMPLATE
@@ -94,7 +111,7 @@ TEMPLATE
         json = { "tag_name" => upsert_version, 
                  "draft" => draft, 
                  "prerelease" => prerelease, 
-                 "name" => "#{upsert_version} #{Time.local.to_s("%B, %d %Y")}", 
+                 "name" => "#{upsert_version} #{Time.local.to_s("%B %d, %Y")}", 
                  "body" => notes_template }
 
         LOGGING.info "Release not found.  Creating a release: # url: #{release_url} headers: #{headers} json #{json}"
@@ -111,7 +128,7 @@ TEMPLATE
               json: { "tag_name" => upsert_version,
                       "draft" => draft,
                       "prerelease" => prerelease,
-                      "name" => "#{upsert_version} #{Time.local.to_s("%B, %d %Y")}",
+                      "name" => "#{upsert_version} #{Time.local.to_s("%B %d, %Y")}",
                       "body" => notes_template })
       found_release = JSON.parse(found_resp.body)
 
@@ -169,13 +186,16 @@ TEMPLATE
   end
   module CompileTimeVersionGenerater
     macro tagged_version
-      {% current_branch = `git rev-parse --abbrev-ref HEAD` %}
+      {% current_branch = `git rev-parse --abbrev-ref HEAD`.split("\n")[0].strip %}
       {% current_hash = `git rev-parse --short HEAD` %}
-      {% current_tag = `git tag --points-at HEAD` %}
+      {% current_status = `git status`.split("\n")[0].strip %}
+      {% current_tag = (!`git tag --points-at HEAD`.empty? && `git tag --points-at HEAD`.split("\n")[-2].strip) || `git tag --points-at HEAD` %} 
+      {% puts "current_branch during compile: #{current_branch}" %}
+      {% puts "current_tag during compile: #{current_tag}" %}
       {% if current_tag.strip == "" %}
-        VERSION = "{{current_branch.strip}}-{{current_hash.strip}}"
+        VERSION = {{current_branch}} + "-#{Time.local.to_s("%Y-%m-%d-%H%M%S")}-{{current_hash.strip}}"
       {% else %}
-        VERSION = "{{current_tag.strip}}"
+        VERSION = {{current_tag.strip}}
       {% end %}
     end
   end
@@ -195,7 +215,7 @@ TEMPLATE
   end
 
   def self.current_branch
-    results = `git rev-parse --abbrev-ref HEAD`
+    results = `git rev-parse --abbrev-ref HEAD`.split("\n")[0].strip
     LOGGING.info "current_branch rev-parse: #{results}"
     results.strip("\n")
   end
@@ -206,9 +226,9 @@ TEMPLATE
     results.strip("\n")
   end
 
-  def self.remote_master_branch_hash(owner_repo="cncf/cnf-conformance")
-    results =  `git ls-remote https://github.com/#{owner_repo}.git master | awk '{ print $1}' | cut -c1-7`.strip
-    LOGGING.info "remote_master_branch_hash: #{results}"
+  def self.remote_main_branch_hash(owner_repo="cncf/cnf-conformance")
+    results =  `git ls-remote https://github.com/#{owner_repo}.git main | awk '{ print $1}' | cut -c1-7`.strip
+    LOGGING.info "remote_main_branch_hash: #{results}"
     results.strip("\n")
   end
 
@@ -222,7 +242,8 @@ TEMPLATE
       #           "Content-Type" => "application/gzip",
       #           "Content-Length" => File.size("#{cnf_tarball_name}").to_s
       #   }, raw: "#{File.open("#{cnf_tarball_name}")}")A
-    asset_resp = `curl -u #{ENV["GITHUB_USER"]}:#{ENV["GITHUB_TOKEN"]} -H "Content-Type: $(file -b --mime-type #{asset_name})" --data-binary @#{asset_name} "https://uploads.github.com/repos/cncf/cnf-conformance/releases/#{release_id}/assets?name=$(basename #{asset_name})"`
+    asset_resp = `curl --http1.1 -u #{ENV["GITHUB_USER"]}:#{ENV["GITHUB_TOKEN"]} -H "Content-Type: $(file -b --mime-type #{asset_name})" --data-binary @#{asset_name} "https://uploads.github.com/repos/cncf/cnf-conformance/releases/#{release_id}/assets?name=$(basename #{asset_name})"`
+    LOGGING.info "asset_resp: #{asset_resp}"
     asset = JSON.parse(asset_resp.strip)
     LOGGING.info "asset: #{asset}"
     asset
@@ -254,6 +275,29 @@ TEMPLATE
     LOGGING.info "latest_release: #{resp}"
     parsed_resp = JSON.parse(resp)
     parsed_resp["tag_name"]?.not_nil!.to_s
+  end
+
+  def self.latest_snapshot
+    resp = `curl -u #{ENV["GITHUB_USER"]}:#{ENV["GITHUB_TOKEN"]} --silent "https://api.github.com/repos/cncf/cnf-conformance/releases"`
+    LOGGING.info "latest_release: #{resp}"
+    parsed_resp = JSON.parse(resp)
+    prerelease = parsed_resp.as_a.select{ | x | x["prerelease"]==true && !("#{x["published_at"]?}".empty?) }
+    latest_snapshot = prerelease.sort do |a, b|
+      LOGGING.debug "a #{a}"
+      LOGGING.debug "b #{b}"
+      if (b["published_at"]? && a["published_at"]?)
+        Time.parse(b["published_at"].as_s,
+                   "%Y-%m-%dT%H:%M:%SZ",
+                   Time::Location::UTC) <=>
+          Time.parse(a["published_at"].as_s,
+                     "%Y-%m-%dT%H:%M:%SZ",
+                     Time::Location::UTC)
+      else
+        0
+      end
+    end
+    LOGGING.debug "latest_snapshot: #{latest_snapshot}"
+    latest_snapshot[0]["tag_name"]?.not_nil!.to_s
   end
 
   def self.issue_title(issue_number)

@@ -1,6 +1,7 @@
 require "./../spec_helper"
 require "colorize"
 require "./../../src/tasks/utils/utils.cr"
+require "./../../src/tasks/utils/kubectl_client.cr"
 
 describe "Observability" do
   before_all do
@@ -13,7 +14,7 @@ describe "Observability" do
       LOGGING.info "Installing kube_state_metrics" 
       resp = `#{helm} install kube-state-metrics stable/kube-state-metrics`
       LOGGING.info resp
-      CNFManager.wait_for_install("kube-state-metrics")
+      KubectlClient::Get.wait_for_install("kube-state-metrics")
 
 			LOGGING.info "Installing prometheus-node-exporter" 
 			resp = `#{helm} install node-exporter stable/prometheus-node-exporter`
@@ -22,12 +23,12 @@ describe "Observability" do
 			LOGGING.info "Installing prometheus-adapter" 
 			resp = `#{helm} install prometheus-adapter stable/prometheus-adapter`
 			LOGGING.info resp
-			CNFManager.wait_for_install("prometheus-adapter")
+			KubectlClient::Get.wait_for_install("prometheus-adapter")
 
 			LOGGING.info "Installing metrics_server" 
 			resp = `kubectl create -f spec/fixtures/metrics-server.yaml`
 			LOGGING.info resp
-			CNFManager.wait_for_install(deployment_name: "metrics-server", namespace:"kube-system")
+			KubectlClient::Get.wait_for_install(deployment_name: "metrics-server", namespace:"kube-system")
 		rescue ex
 			LOGGING.error ex.message
 			ex.backtrace.each do |x| 
@@ -56,17 +57,17 @@ describe "Observability" do
     $?.success?.should be_true
   end
 
-  it "'kube_state_metrics' should return some json", tags: "platform:kube_state_metrics" do
+  it "'kube_state_metrics' should return some json", tags: ["platform:kube_state_metrics"] do
       response_s = `./cnf-conformance platform:kube_state_metrics poc`
       LOGGING.info response_s
       (/(PASSED){1}.*(Your platform is using the){1}.*(release for kube state metrics){1}/ =~ response_s).should_not be_nil
   end
 
-  it "'node_exporter' should detect the named release of the installed node_exporter", tags: "platform:node_exporter" do
+  it "'node_exporter' should detect the named release of the installed node_exporter", tags: ["platform:node_exporter"] do
       pod_ready = ""
       pod_ready_timeout = 45
       until (pod_ready == "true" || pod_ready_timeout == 0)
-        pod_ready = CNFManager.pod_status("node-exporter-prometheus").split(",")[2]
+        pod_ready = KubectlClient::Get.pod_status("node-exporter-prometheus").split(",")[2]
         puts "Pod Ready Status: #{pod_ready}"
         sleep 1
         pod_ready_timeout = pod_ready_timeout - 1
@@ -76,13 +77,13 @@ describe "Observability" do
       (/(PASSED){1}.*(Your platform is using the){1}.*(release for the node exporter){1}/ =~ response_s).should_not be_nil
   end
 
-  it "'prometheus_adapter' should detect the named release of the installed prometheus_adapter", tags: "platform:prometheus_adapter" do
+  it "'prometheus_adapter' should detect the named release of the installed prometheus_adapter", tags: ["platform:prometheus_adapter"] do
       response_s = `./cnf-conformance platform:prometheus_adapter poc`
       LOGGING.info response_s
       (/(PASSED){1}.*(Your platform is using the){1}.*(release for the prometheus adapter){1}/ =~ response_s).should_not be_nil
   end
 
-  it "'metrics_server' should detect the named release of the installed metrics_server", tags: "platform:metrics_server" do
+  it "'metrics_server' should detect the named release of the installed metrics_server", tags: ["platform:metrics_server"] do
       response_s = `./cnf-conformance platform:metrics_server poc`
       LOGGING.info response_s
       (/(PASSED){1}.*(Your platform is using the){1}.*(release for the metrics server){1}/ =~ response_s).should_not be_nil

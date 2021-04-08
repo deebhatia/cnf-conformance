@@ -5,7 +5,7 @@ require "totem"
 
 desc "Cleans up the CNF Conformance test suite, the K8s cluster, and upstream projects"
 # task "cleanup", ["samples_cleanup", "results_yml_cleanup"] do  |_, args|
-task "cleanup", ["samples_cleanup", "uninstall_chaosmesh"] do  |_, args|
+task "cleanup", ["samples_cleanup"] do  |_, args|
 end
 
 desc "Cleans up the CNF Conformance sample projects"
@@ -28,15 +28,17 @@ task "samples_cleanup", ["sample_coredns_cleanup", "cleanup_sample_coredns", "ba
   end
 end
 
-task "tools_cleanup", ["helm_local_cleanup", "sonobuoy_cleanup"] do  |_, args|
+desc "Cleans up the CNF Conformance helper tools and containers"
+task "tools_cleanup", ["helm_local_cleanup", "sonobuoy_cleanup", "uninstall_chaosmesh","uninstall_litmus", "uninstall_dockerd"] do  |_, args|
 end
 
-task "cleanup_all", ["cleanup_samples", "tools_cleanup"] do  |_, args|
+desc "Cleans up the CNF Conformance sample projects, helper tools, and containers"
+task "cleanup_all", ["samples_cleanup", "tools_cleanup"] do  |_, args|
 end
 
 task "results_yml_cleanup" do |_, args|
-  if File.exists?("#{Results.file}")
-    rm = `rm #{Results.file}`
+  if File.exists?("#{CNFManager::Points::Results.file}")
+    rm = `rm #{CNFManager::Points::Results.file}`
     VERBOSE_LOGGING.info rm if check_verbose(args)
   end
 end

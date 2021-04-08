@@ -14,7 +14,7 @@ namespace "platform" do
 
   desc "Does the Platform use a runtime that is oci compliant"
   task "oci_compliant" do |_, args|
-    task_response = task_runner(args) do |args|
+    task_response = CNFManager::Task.task_runner(args) do |args|
       resp = KubectlClient::Get.container_runtimes
       all_oci_runtimes = true
       resp.each do |x|
@@ -28,7 +28,7 @@ namespace "platform" do
         upsert_passed_task("oci_compliant","✔️  PASSED: Your platform is using the following runtimes: [#{KubectlClient::Get.container_runtimes.join(",")}] which are OCI compliant runtimes #{emoji_chaos_oci_compliant}")
       else
         emoji_chaos_oci_compliant="📶☠️"
-        upsert_failed_task("oci_compliant", "✖️  FAILURE: Platform has at least one node that uses a non OCI compliant runtime #{emoji_chaos_oci_compliant}")
+        upsert_failed_task("oci_compliant", "✖️  FAILED: Platform has at least one node that uses a non OCI compliant runtime #{emoji_chaos_oci_compliant}")
       end
     end
   end

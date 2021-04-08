@@ -16,37 +16,36 @@ namespace "platform" do
   task "worker_reboot_recovery" do |_, args|
     unless check_destructive(args)
       LOGGING.info "skipping node_failure: not in destructive mode"
-      puts "Skipped".colorize(:yellow)
+      puts "SKIPPED: Node Failure".colorize(:yellow)
       next
     end
     LOGGING.info "Running POC in destructive mode!"
-    task_response = task_runner(args) do |args|
-      current_dir = FileUtils.pwd 
-      #helm = "#{current_dir}/#{TOOLS_DIR}/helm/linux-amd64/helm"
-    helm = CNFSingleton.helm
+    task_response = CNFManager::Task.task_runner(args) do |args|
+      current_dir = FileUtils.pwd
+      helm = CNFSingleton.helm
 
       #Select the first node that isn't a master and is also schedulable
       worker_nodes = `kubectl get nodes --selector='!node-role.kubernetes.io/master' -o 'go-template={{range .items}}{{$taints:=""}}{{range .spec.taints}}{{if eq .effect "NoSchedule"}}{{$taints = print $taints .key ","}}{{end}}{{end}}{{if not $taints}}{{.metadata.name}}{{ "\\n"}}{{end}}{{end}}'`
       worker_node = worker_nodes.split("\n")[0]
 
 
-      File.write("node_failure_values.yml", NODE_FAILURE_VALUES)
+      File.write("node_failure_values.yml", NODE_FAILED_VALUES)
       install_coredns = `#{helm} install node-failure -f ./node_failure_values.yml --set nodeSelector."kubernetes\\.io/hostname"=#{worker_node} stable/coredns`
-      CNFManager.wait_for_install("node-failure-coredns")
+      KubectlClient::Get.wait_for_install("node-failure-coredns")
 
 
       File.write("reboot_daemon_pod.yml", REBOOT_DAEMON)
       install_reboot_daemon = `kubectl create -f reboot_daemon_pod.yml`
-      CNFManager.wait_for_install("node-failure-coredns")
+      KubectlClient::Get.wait_for_install("node-failure-coredns")
 
       pod_ready = ""
       pod_ready_timeout = 45
       begin
         until (pod_ready == "true" || pod_ready_timeout == 0)
-          pod_ready = CNFManager.pod_status("reboot", "--field-selector spec.nodeName=#{worker_node}").split(",")[2]
+          pod_ready = KubectlClient::Get.pod_status("reboot", "--field-selector spec.nodeName=#{worker_node}").split(",")[2]
           pod_ready_timeout = pod_ready_timeout - 1
           if pod_ready_timeout == 0
-            upsert_failed_task("worker_reboot_recovery", "✖️  FAILURE: Failed to install reboot daemon")
+            upsert_failed_task("worker_reboot_recovery", "✖️  FAILED: Failed to install reboot daemon")
             exit 1
           end
           sleep 1
@@ -55,7 +54,7 @@ namespace "platform" do
         end
 
         # Find Reboot Daemon name
-        reboot_daemon_pod = CNFManager.pod_status("reboot", "--field-selector spec.nodeName=#{worker_node}").split(",")[0]
+        reboot_daemon_pod = KubectlClient::Get.pod_status("reboot", "--field-selector spec.nodeName=#{worker_node}").split(",")[0]
         start_reboot = `kubectl exec -ti #{reboot_daemon_pod} touch /tmp/reboot`
 
         #Watch for Node Failure.
@@ -63,14 +62,14 @@ namespace "platform" do
         node_ready = ""
         node_failure_timeout = 30
         until (pod_ready == "false" || node_ready == "False" || node_ready == "Unknown" || node_failure_timeout == 0)
-          pod_ready = CNFManager.pod_status("node-failure").split(",")[2]
-          node_ready = CNFManager.node_status("#{worker_node}")
+          pod_ready = KubectlClient::Get.pod_status("node-failure").split(",")[2]
+          node_ready = KubectlClient::Get.node_status("#{worker_node}")
           puts "Waiting for Node to go offline"
           puts "Pod Ready Status: #{pod_ready}"
           puts "Node Ready Status: #{node_ready}"
           node_failure_timeout = node_failure_timeout - 1
           if node_failure_timeout == 0
-            upsert_failed_task("worker_reboot_recovery", "✖️  FAILURE: Node failed to go offline")
+            upsert_failed_task("worker_reboot_recovery", "✖️  FAILED: Node failed to go offline")
             exit 1
           end
           sleep 1
@@ -81,14 +80,14 @@ namespace "platform" do
         node_ready = ""
         node_online_timeout = 300
         until (pod_ready == "true" && node_ready == "True" || node_online_timeout == 0)
-          pod_ready = CNFManager.pod_status("node-failure", "").split(",")[2]
-          node_ready = CNFManager.node_status("#{worker_node}")
+          pod_ready = KubectlClient::Get.pod_status("node-failure", "").split(",")[2]
+          node_ready = KubectlClient::Get.node_status("#{worker_node}")
           puts "Waiting for Node to come back online"
           puts "Pod Ready Status: #{pod_ready}"
           puts "Node Ready Status: #{node_ready}"
           node_online_timeout = node_online_timeout - 1
           if node_online_timeout == 0
-            upsert_failed_task("worker_reboot_recovery", "✖️  FAILURE: Node failed to come back online")
+            upsert_failed_task("worker_reboot_recovery", "✖️  FAILED: Node failed to come back online")
             exit 1
           end
           sleep 1
